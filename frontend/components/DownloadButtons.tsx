@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Download, FileText, Image as ImageIcon, Check, Copy } from 'lucide-react';
+import { Download, FileText, Camera as ImageIcon, Check, Copy } from 'lucide-react';
 import { api } from '../lib/api';
 
 interface DownloadButtonsProps {
