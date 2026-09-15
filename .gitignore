@@ -1,0 +1,43 @@
+# Dependencies
+node_modules/
+*/node_modules/
+.pnp
+.pnp.js
+
+# Next.js build output
+.next/
+*/.next/
+out/
+build/
+dist/
+
+# Environment files
+.env
+.env*.local
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Debug logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Runtime data & uploads
+backend/data/*.sqlite
+backend/data/*.sqlite3
+backend/uploads/*
+!backend/uploads/.gitkeep
+uploads/
+
+# OS Files
+.DS_Store
+Thumbs.db
+*.bak
+
+# IDE
+.vscode/
+.idea/
