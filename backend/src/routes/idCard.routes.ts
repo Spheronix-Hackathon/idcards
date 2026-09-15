@@ -1,8 +1,9 @@
+import express from 'express';
 import { Router } from 'express';
 import { IDCardController } from '../controllers/idCard.controller';
 import { authenticateAdmin } from '../middleware/auth.middleware';
 
-const router = Router();
+const router = express.Router();
 
 // ID Card Metadata
 router.get('/:studentId', IDCardController.getCardMetadata);

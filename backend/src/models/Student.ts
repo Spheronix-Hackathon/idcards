@@ -1,4 +1,4 @@
-import mongoose, { Schema, Document } from 'mongoose';
+import mongoose, { Schema, Document, model } from 'mongoose';
 import { StudentStatus, IBase64Image } from '../types';
 
 export interface IStudent extends Document {
@@ -100,4 +100,4 @@ const StudentSchema = new Schema<IStudent>(
 StudentSchema.index({ createdAt: -1 });
 StudentSchema.index({ fullName: 'text', collegeName: 'text', branch: 'text' });
 
-export const Student = mongoose.model<IStudent>('Student', StudentSchema);
+export const Student = model<IStudent>('Student', StudentSchema);

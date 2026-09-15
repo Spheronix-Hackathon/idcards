@@ -1,4 +1,4 @@
-import mongoose, { Schema, Document } from 'mongoose';
+import mongoose, { Schema, Document, model } from 'mongoose';
 import { AuditAction } from '../types';
 
 export interface IAuditLog extends Document {
@@ -13,11 +13,11 @@ export interface IAuditLog extends Document {
 const AuditLogSchema = new Schema<IAuditLog>(
   {
     admin: {
-      type: Schema.Types.ObjectId,
+      type: mongoose.mongoose.Schema.Types.ObjectId,
       ref: 'Admin'
     },
     student: {
-      type: Schema.Types.ObjectId,
+      type: mongoose.mongoose.Schema.Types.ObjectId,
       ref: 'Student'
     },
     action: {
@@ -31,7 +31,7 @@ const AuditLogSchema = new Schema<IAuditLog>(
       required: true
     },
     metadata: {
-      type: Schema.Types.Mixed
+      type: mongoose.mongoose.Schema.Types.Mixed
     }
   },
   {
@@ -42,4 +42,4 @@ const AuditLogSchema = new Schema<IAuditLog>(
 
 AuditLogSchema.index({ createdAt: -1 });
 
-export const AuditLog = mongoose.model<IAuditLog>('AuditLog', AuditLogSchema);
+export const AuditLog = model<IAuditLog>('AuditLog', AuditLogSchema);

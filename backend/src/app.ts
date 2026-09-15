@@ -24,7 +24,7 @@ export const createApp = (): Express => {
   const allowedOrigin = process.env.FRONTEND_URL || 'http://localhost:3000';
   app.use(
     cors({
-      origin: (origin, callback) => {
+      origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
         // Allow requests with no origin (like mobile apps, curl, or server-to-server)
         if (!origin || origin === allowedOrigin || process.env.NODE_ENV !== 'production') {
           callback(null, true);

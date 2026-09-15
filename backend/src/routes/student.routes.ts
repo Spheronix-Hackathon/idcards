@@ -1,3 +1,4 @@
+import express from 'express';
 import { Router } from 'express';
 import { StudentController } from '../controllers/student.controller';
 import { IDCardController } from '../controllers/idCard.controller';
@@ -7,7 +8,7 @@ import { registrationLimiter, retrievalLimiter } from '../middleware/rateLimit.m
 import { authenticateAdmin } from '../middleware/auth.middleware';
 import { studentRegistrationSchema, studentRetrievalSchema } from '../utils/validation';
 
-const router = Router();
+const router = express.Router();
 
 // Student registration with photo upload and rate limiting
 router.post(

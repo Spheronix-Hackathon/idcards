@@ -1,3 +1,4 @@
+import express from 'express';
 import { Router } from 'express';
 import { AdminController } from '../controllers/admin.controller';
 import { IDCardController } from '../controllers/idCard.controller';
@@ -6,7 +7,7 @@ import { adminLoginLimiter } from '../middleware/rateLimit.middleware';
 import { validateBody } from '../middleware/validation.middleware';
 import { adminLoginSchema, updateStudentStatusSchema } from '../utils/validation';
 
-const router = Router();
+const router = express.Router();
 
 // Admin Authentication
 router.post('/login', adminLoginLimiter, validateBody(adminLoginSchema), AdminController.login);

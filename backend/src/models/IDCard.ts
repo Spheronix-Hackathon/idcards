@@ -1,4 +1,4 @@
-import mongoose, { Schema, Document } from 'mongoose';
+import mongoose, { Schema, Document, model } from 'mongoose';
 import { IBase64Image, StudentStatus } from '../types';
 
 export interface IIDCard extends Document {
@@ -19,7 +19,7 @@ export interface IIDCard extends Document {
 const IDCardSchema = new Schema<IIDCard>(
   {
     student: {
-      type: Schema.Types.ObjectId,
+      type: mongoose.mongoose.Schema.Types.ObjectId,
       ref: 'Student',
       required: true,
       index: true
@@ -30,7 +30,7 @@ const IDCardSchema = new Schema<IIDCard>(
       index: true
     },
     template: {
-      type: Schema.Types.ObjectId,
+      type: mongoose.mongoose.Schema.Types.ObjectId,
       ref: 'IDCardTemplate',
       required: true
     },
@@ -73,4 +73,4 @@ const IDCardSchema = new Schema<IIDCard>(
 
 IDCardSchema.index({ studentId: 1, version: -1 });
 
-export const IDCard = mongoose.model<IIDCard>('IDCard', IDCardSchema);
+export const IDCard = model<IIDCard>('IDCard', IDCardSchema);

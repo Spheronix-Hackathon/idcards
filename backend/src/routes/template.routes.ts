@@ -1,9 +1,10 @@
+import express from 'express';
 import { Router } from 'express';
 import { TemplateController } from '../controllers/template.controller';
 import { authenticateAdmin, requireSuperAdmin } from '../middleware/auth.middleware';
 import { uploadPhoto } from '../middleware/upload.middleware';
 
-const router = Router();
+const router = express.Router();
 
 // Templates listing (accessible to all authenticated admins)
 router.get('/', authenticateAdmin, TemplateController.getTemplates);

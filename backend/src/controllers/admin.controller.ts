@@ -207,7 +207,7 @@ export class AdminController {
 
       res.status(200).json({
         success: true,
-        data: students.map((s) => ({
+        data: students.map((s: any) => ({
           ...s.toObject(),
           photoUrl: `/api/students/${s.studentId}/photo`,
           cardImageUrl: `/api/students/${s.studentId}/id-card/image`,

@@ -1,4 +1,4 @@
-import mongoose, { Schema, Document } from 'mongoose';
+import mongoose, { Schema, Document, model } from 'mongoose';
 import { IBase64Image, ITemplateConfiguration } from '../types';
 
 export interface IIDCardTemplate extends Document {
@@ -19,7 +19,7 @@ const ElementConfigSchema = new Schema(
     height: { type: Number },
     radius: { type: Number },
     fontSize: { type: Number },
-    fontWeight: { type: Schema.Types.Mixed, default: 'normal' },
+    fontWeight: { type: mongoose.mongoose.Schema.Types.Mixed, default: 'normal' },
     color: { type: String, default: '#000000' },
     lineHeight: { type: Number },
     maxLines: { type: Number }
@@ -76,4 +76,4 @@ const IDCardTemplateSchema = new Schema<IIDCardTemplate>(
 
 IDCardTemplateSchema.index({ version: 1 }, { unique: true });
 
-export const IDCardTemplate = mongoose.model<IIDCardTemplate>('IDCardTemplate', IDCardTemplateSchema);
+export const IDCardTemplate = model<IIDCardTemplate>('IDCardTemplate', IDCardTemplateSchema);
