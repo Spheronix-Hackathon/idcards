@@ -21,14 +21,15 @@ export const createApp = (): Express => {
   );
 
   // CORS Configuration
-  let allowedOrigin = process.env.FRONTEND_URL || 'http://localhost:3000';
-  allowedOrigin = allowedOrigin.replace(/\/$/, ''); // Remove trailing slash if present
+  const allowedOrigins = (process.env.FRONTEND_URL || 'http://localhost:3000')
+    .split(',')
+    .map((url) => url.trim().replace(/\/$/, ''));
   
   app.use(
     cors({
       origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
         // Allow requests with no origin (like mobile apps, curl, or server-to-server)
-        if (!origin || origin.replace(/\/$/, '') === allowedOrigin || process.env.NODE_ENV !== 'production') {
+        if (!origin || allowedOrigins.includes(origin.replace(/\/$/, '')) || process.env.NODE_ENV !== 'production') {
           callback(null, true);
         } else {
           callback(new Error('CORS access blocked by policy.'));
