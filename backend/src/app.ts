@@ -27,14 +27,7 @@ export const createApp = (): Express => {
   
   app.use(
     cors({
-      origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
-        // Allow requests with no origin (like mobile apps, curl, or server-to-server)
-        if (!origin || allowedOrigins.includes(origin.replace(/\/$/, '')) || process.env.NODE_ENV !== 'production') {
-          callback(null, true);
-        } else {
-          callback(new Error('CORS access blocked by policy.'));
-        }
-      },
+      origin: true, // Allow all origins for the hackathon
       credentials: true,
       methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE', 'OPTIONS'],
       allowedHeaders: ['Content-Type', 'Authorization']
