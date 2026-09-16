@@ -94,14 +94,14 @@ export class StudentService {
     }
 
     // Generate Card (guaranteed NO QR code)
-    const generatedCardImage = await IDCardService.generateStudentIdCard(student, activeTemplate);
+    const generatedCardImage = await IDCardService.generateStudentIdCard(student, activeTemplate!);
 
     // Save IDCard version 1
     const idCard = await IDCard.create({
       student: student._id,
       studentId: student.studentId,
-      template: activeTemplate._id,
-      templateVersion: activeTemplate.version,
+      template: activeTemplate!._id,
+      templateVersion: activeTemplate!.version,
       generatedImage: generatedCardImage,
       status: StudentStatus.PENDING,
       version: 1
@@ -119,7 +119,7 @@ export class StudentService {
       action: AuditAction.CARD_GENERATED,
       description: `Temporary ID card version 1 generated for student ${student.studentId}`,
       studentId: student._id,
-      metadata: { templateVersion: activeTemplate.version }
+      metadata: { templateVersion: activeTemplate!.version }
     });
 
     return { student, idCard };

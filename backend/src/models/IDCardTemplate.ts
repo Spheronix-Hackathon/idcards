@@ -19,7 +19,7 @@ const ElementConfigSchema = new Schema(
     height: { type: Number },
     radius: { type: Number },
     fontSize: { type: Number },
-    fontWeight: { type: mongoose.mongoose.Schema.Types.Mixed, default: 'normal' },
+    fontWeight: { type: mongoose.Schema.Types.Mixed, default: 'normal' },
     color: { type: String, default: '#000000' },
     lineHeight: { type: Number },
     maxLines: { type: Number }

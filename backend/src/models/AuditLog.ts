@@ -13,11 +13,11 @@ export interface IAuditLog extends Document {
 const AuditLogSchema = new Schema<IAuditLog>(
   {
     admin: {
-      type: mongoose.mongoose.Schema.Types.ObjectId,
+      type: mongoose.Schema.Types.ObjectId,
       ref: 'Admin'
     },
     student: {
-      type: mongoose.mongoose.Schema.Types.ObjectId,
+      type: mongoose.Schema.Types.ObjectId,
       ref: 'Student'
     },
     action: {
@@ -31,7 +31,7 @@ const AuditLogSchema = new Schema<IAuditLog>(
       required: true
     },
     metadata: {
-      type: mongoose.mongoose.Schema.Types.Mixed
+      type: mongoose.Schema.Types.Mixed
     }
   },
   {

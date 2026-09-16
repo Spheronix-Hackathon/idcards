@@ -19,7 +19,7 @@ export interface IIDCard extends Document {
 const IDCardSchema = new Schema<IIDCard>(
   {
     student: {
-      type: mongoose.mongoose.Schema.Types.ObjectId,
+      type: mongoose.Schema.Types.ObjectId,
       ref: 'Student',
       required: true,
       index: true
@@ -30,7 +30,7 @@ const IDCardSchema = new Schema<IIDCard>(
       index: true
     },
     template: {
-      type: mongoose.mongoose.Schema.Types.ObjectId,
+      type: mongoose.Schema.Types.ObjectId,
       ref: 'IDCardTemplate',
       required: true
     },
