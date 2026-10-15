@@ -97,9 +97,6 @@ const StudentSchema = new Schema<IStudent>(
 );
 
 // Compound and search indexes
-StudentSchema.index({ status: 1 });
-StudentSchema.index({ email: 1 });
-StudentSchema.index({ mobile: 1 });
 StudentSchema.index({ createdAt: -1 });
 StudentSchema.index({ fullName: 'text', collegeName: 'text', branch: 'text' });
 
