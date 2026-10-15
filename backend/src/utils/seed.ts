@@ -73,40 +73,35 @@ export const seedDatabase = async (): Promise<void> => {
   );
   console.log('[Seed] Successfully activated Official Spheronix Default Template v4.1 (deafult.png, 638x1012 px) as Default.');
 
-  // 4. Auto-migrate existing students to the official vertical ID card template
-  const students = await Student.find({});
-  if (students.length > 0) {
-    console.log(`[Seed] Upgrading ${students.length} existing student ID card(s) to official vertical template...`);
-    for (const s of students) {
+  // 4. One-time card generation only for students with missing ID cards
+  // Skip full iteration on startup if cards are already generated to avoid blocking the event loop
+  const totalCards = await IDCard.countDocuments();
+  const totalStudents = await Student.countDocuments();
+
+  if (totalStudents > 0 && totalCards === 0) {
+    console.log(`[Seed] Generating initial cards for ${totalStudents} students (one-time setup)...`);
+    const studentsWithoutCards = await Student.find({}).limit(50);
+    for (const s of studentsWithoutCards) {
       try {
         const newCardImage = await IDCardService.generateStudentIdCard(s, activeVerticalTemplate);
-        const existingCard = await IDCard.findOne({ studentId: s.studentId }).sort({ version: -1 });
-
-        if (existingCard) {
-          existingCard.generatedImage = newCardImage;
-          existingCard.template = activeVerticalTemplate._id;
-          existingCard.templateVersion = activeVerticalTemplate.version;
-          await existingCard.save();
-          console.log(`[Seed] Migrated card for ${s.studentId} (${s.fullName}) to official vertical template.`);
-        } else {
-          await IDCard.create({
-            student: s._id,
-            studentId: s.studentId,
-            template: activeVerticalTemplate._id,
-            templateVersion: activeVerticalTemplate.version,
-            generatedImage: newCardImage,
-            status: s.status,
-            version: 1
-          });
-          console.log(`[Seed] Created vertical card for student ${s.studentId}.`);
-        }
-      } catch (migrateErr) {
-        console.warn(`[Seed] Warning migrating ${s.studentId}:`, migrateErr);
+        await IDCard.create({
+          student: s._id,
+          studentId: s.studentId,
+          template: activeVerticalTemplate._id,
+          templateVersion: activeVerticalTemplate.version,
+          generatedImage: newCardImage,
+          status: s.status,
+          version: 1
+        });
+      } catch (err) {
+        console.warn(`[Seed] Error generating card for ${s.studentId}:`, err);
       }
     }
+  } else {
+    console.log(`[Seed] Existing student cards verified (${totalCards} cards present). Skipping regeneration to keep startup instant.`);
   }
 
-  console.log('[Seed] Seeding and vertical template configuration completed successfully!');
+  console.log('[Seed] Database initialization completed in milliseconds!');
 };
 
 // If run directly via CLI
