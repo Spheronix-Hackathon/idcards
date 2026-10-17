@@ -39,8 +39,7 @@ export class PhotoService {
         withoutEnlargement: true
       })
       .jpeg({
-        quality: 85,
-        mozjpeg: true
+        quality: 85
       })
       .toBuffer();
 

@@ -11,6 +11,36 @@ import { base64ImageToBuffer } from '../utils/base64';
 import { getDefaultTemplateImage, DEFAULT_TEMPLATE_CONFIG } from '../utils/defaultTemplate';
 
 export class StudentController {
+  private static cachedActiveTemplate: any = null;
+  private static templateCacheTimestamp: number = 0;
+  private static readonly TEMPLATE_CACHE_TTL_MS = 120000; // 2 minutes
+
+  public static async getActiveTemplate() {
+    const now = Date.now();
+    if (
+      StudentController.cachedActiveTemplate &&
+      now - StudentController.templateCacheTimestamp < StudentController.TEMPLATE_CACHE_TTL_MS
+    ) {
+      return StudentController.cachedActiveTemplate;
+    }
+
+    let activeTemplate = await IDCardTemplate.findOne({ isActive: true });
+    if (!activeTemplate) {
+      const defaultImage = await getDefaultTemplateImage();
+      activeTemplate = await IDCardTemplate.create({
+        name: 'Official Spheronix Standard Template',
+        version: '1.0',
+        templateImage: defaultImage,
+        configuration: DEFAULT_TEMPLATE_CONFIG,
+        isActive: true
+      });
+    }
+
+    StudentController.cachedActiveTemplate = activeTemplate;
+    StudentController.templateCacheTimestamp = now;
+    return activeTemplate;
+  }
+
   /**
    * Registers a new student, generates atomic Student ID, processes photo,
    * generates official Spheronix temporary ID card, and saves records to MongoDB.
@@ -32,9 +62,13 @@ export class StudentController {
         return;
       }
 
-      // 2. Duplicate checks (Email & Mobile)
+      // 2. Parallel duplicate checks (Email & Mobile)
       const normalizedEmail = email.toLowerCase().trim();
-      const existingEmail = await Student.findOne({ email: normalizedEmail });
+      const [existingEmail, existingMobile] = await Promise.all([
+        Student.findOne({ email: normalizedEmail }).select('_id'),
+        Student.findOne({ mobile: mobile.trim() }).select('_id')
+      ]);
+
       if (existingEmail) {
         res.status(409).json({
           success: false,
@@ -43,7 +77,6 @@ export class StudentController {
         return;
       }
 
-      const existingMobile = await Student.findOne({ mobile: mobile.trim() });
       if (existingMobile) {
         res.status(409).json({
           success: false,
@@ -52,16 +85,14 @@ export class StudentController {
         return;
       }
 
-      // 3. Process and optimize photo
-      const processedPhoto = await PhotoService.processStudentPhoto(
-        req.file.buffer,
-        req.file.mimetype
-      );
+      // 3. Parallel Photo Processing, ID Generation, and Template Resolution
+      const [processedPhoto, studentId, activeTemplate] = await Promise.all([
+        PhotoService.processStudentPhoto(req.file.buffer, req.file.mimetype),
+        generateNextStudentId(),
+        StudentController.getActiveTemplate()
+      ]);
 
-      // 4. Atomically generate unique Student ID (e.g. SPXEST-TE0001)
-      const studentId = await generateNextStudentId();
-
-      // 5. Create Student record
+      // 4. Create Student record
       const student = await Student.create({
         studentId,
         fullName: fullName.trim(),
@@ -76,26 +107,13 @@ export class StudentController {
         status: StudentStatus.PENDING
       });
 
-      // 6. Retrieve active template (or create default if none exists)
-      let activeTemplate = await IDCardTemplate.findOne({ isActive: true });
-      if (!activeTemplate) {
-        const defaultImage = await getDefaultTemplateImage();
-        activeTemplate = await IDCardTemplate.create({
-          name: 'Official Spheronix Standard Template',
-          version: '1.0',
-          templateImage: defaultImage,
-          configuration: DEFAULT_TEMPLATE_CONFIG,
-          isActive: true
-        });
-      }
-
-      // 7. Generate ID Card image (strictly NO QR CODE)
+      // 5. Generate ID Card image (strictly NO QR CODE)
       const generatedCardImage = await IDCardService.generateStudentIdCard(
         student,
         activeTemplate
       );
 
-      // 8. Create IDCard record
+      // 6. Create IDCard record
       const idCard = await IDCard.create({
         student: student._id,
         studentId: student.studentId,
@@ -106,20 +124,21 @@ export class StudentController {
         version: 1
       });
 
-      // 9. Audit log
-      await AuditService.log({
-        action: AuditAction.STUDENT_CREATED,
-        description: `Student ${student.fullName} registered with ID ${student.studentId}`,
-        studentId: student._id,
-        metadata: { studentId: student.studentId, email: student.email }
-      });
-
-      await AuditService.log({
-        action: AuditAction.CARD_GENERATED,
-        description: `Temporary ID card version 1 generated for student ${student.studentId}`,
-        studentId: student._id,
-        metadata: { templateVersion: activeTemplate.version }
-      });
+      // 7. Non-blocking audit logs in background
+      Promise.all([
+        AuditService.log({
+          action: AuditAction.STUDENT_CREATED,
+          description: `Student ${student.fullName} registered with ID ${student.studentId}`,
+          studentId: student._id,
+          metadata: { studentId: student.studentId, email: student.email }
+        }),
+        AuditService.log({
+          action: AuditAction.CARD_GENERATED,
+          description: `Temporary ID card version 1 generated for student ${student.studentId}`,
+          studentId: student._id,
+          metadata: { templateVersion: activeTemplate.version }
+        })
+      ]).catch((err) => console.error('[Audit] Background log error:', err));
 
       // Return clean response without huge Base64 payload
       res.status(201).json({

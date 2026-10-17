@@ -319,7 +319,7 @@ export class IDCardService {
         }
       ])
 
-      .png({ quality: 95, compressionLevel: 8 })
+      .png({ compressionLevel: 5, adaptiveFiltering: true })
       .toBuffer();
 
     return bufferToBase64Image(finalCardBuffer, 'image/png');

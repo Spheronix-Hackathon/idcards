@@ -24,6 +24,7 @@ export const StudentForm: React.FC = () => {
   const [photoError, setPhotoError] = useState<string | null>(null);
   const [serverError, setServerError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const [submitStage, setSubmitStage] = useState<string>('Generating your temporary ID card...');
 
   const {
     register,
@@ -41,6 +42,15 @@ export const StudentForm: React.FC = () => {
     }
 
     setIsSubmitting(true);
+    setSubmitStage('Generating your temporary ID card...');
+
+    const stageTimer1 = setTimeout(() => {
+      setSubmitStage('Framing photo & rendering official card layout...');
+    }, 3000);
+
+    const stageTimer2 = setTimeout(() => {
+      setSubmitStage('Connecting to database & saving records...');
+    }, 6500);
 
     try {
       const formData = new FormData();
@@ -65,8 +75,11 @@ export const StudentForm: React.FC = () => {
       // Redirect to success page with studentId
       router.push(`/success?studentId=${result.data.studentId}`);
     } catch (err: any) {
-      setServerError('A network error occurred while connecting to the server. Please try again.');
+      setServerError(err.message || 'A network error occurred while connecting to the server. Please try again.');
       setIsSubmitting(false);
+    } finally {
+      clearTimeout(stageTimer1);
+      clearTimeout(stageTimer2);
     }
   };
 
@@ -251,7 +264,7 @@ export const StudentForm: React.FC = () => {
           {isSubmitting ? (
             <>
               <Loader2 className="w-5 h-5 animate-spin" />
-              <span>Generating your temporary ID card...</span>
+              <span>{submitStage}</span>
             </>
           ) : (
             <>

@@ -10,14 +10,37 @@ const getAuthHeaders = (): Record<string, string> => {
   return headers;
 };
 
+const safeJson = async (res: Response) => {
+  try {
+    return await res.json();
+  } catch {
+    return {
+      success: false,
+      message: res.ok ? 'Unexpected response format from server.' : `Server error (${res.status}): ${res.statusText || 'Service temporarily unavailable'}`
+    };
+  }
+};
+
 export const api = {
   // Public Student Endpoints
   createStudent: async (formData: FormData) => {
-    const res = await fetch(`${API_BASE}/students`, {
-      method: 'POST',
-      body: formData
-    });
-    return res.json();
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 60000);
+    try {
+      const res = await fetch(`${API_BASE}/students`, {
+        method: 'POST',
+        body: formData,
+        signal: controller.signal
+      });
+      return await safeJson(res);
+    } catch (err: any) {
+      if (err.name === 'AbortError') {
+        throw new Error('Request timed out. The server is taking longer than usual to respond. Please try again.');
+      }
+      throw err;
+    } finally {
+      clearTimeout(timeoutId);
+    }
   },
 
   retrieveStudent: async (studentId: string, email: string) => {
