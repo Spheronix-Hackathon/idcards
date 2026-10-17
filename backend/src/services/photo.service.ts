@@ -30,16 +30,16 @@ export class PhotoService {
       throw new Error('Image format verification failed. Vector (SVG) and non-standard image types are rejected.');
     }
 
-    // Resize image maintaining aspect ratio within 800x800 boundary
+    // Resize image maintaining aspect ratio within 500x500 boundary (sharp retina for 210px badge)
     const processedBuffer = await sharp(buffer)
       .resize({
-        width: 800,
-        height: 800,
+        width: 500,
+        height: 500,
         fit: 'inside',
         withoutEnlargement: true
       })
       .jpeg({
-        quality: 85
+        quality: 80
       })
       .toBuffer();
 

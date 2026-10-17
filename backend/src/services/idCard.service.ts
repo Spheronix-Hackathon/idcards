@@ -326,7 +326,7 @@ export class IDCardService {
           left: 0
         }
       ])
-      .png({ compressionLevel: 4, effort: 1 })
+      .png({ palette: true, quality: 90, effort: 1 })
       .toBuffer();
 
     return bufferToBase64Image(finalCardBuffer, 'image/png');
