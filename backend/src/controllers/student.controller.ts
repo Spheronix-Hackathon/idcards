@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
+import mongoose from 'mongoose';
 import { Student } from '../models/Student';
 import { IDCard } from '../models/IDCard';
 import { IDCardTemplate } from '../models/IDCardTemplate';
@@ -92,8 +93,10 @@ export class StudentController {
         StudentController.getActiveTemplate()
       ]);
 
-      // 4. Create Student record
-      const student = await Student.create({
+      // 4. Pre-allocate Student document with unique ObjectId
+      const studentIdObject = new mongoose.Types.ObjectId();
+      const student = new Student({
+        _id: studentIdObject,
         studentId,
         fullName: fullName.trim(),
         email: normalizedEmail,
@@ -113,8 +116,8 @@ export class StudentController {
         activeTemplate
       );
 
-      // 6. Create IDCard record
-      const idCard = await IDCard.create({
+      // 6. Concurrently persist Student and IDCard to MongoDB Atlas
+      const idCard = new IDCard({
         student: student._id,
         studentId: student.studentId,
         template: activeTemplate._id,
@@ -123,6 +126,11 @@ export class StudentController {
         status: StudentStatus.PENDING,
         version: 1
       });
+
+      await Promise.all([
+        student.save(),
+        idCard.save()
+      ]);
 
       // 7. Non-blocking audit logs in background
       Promise.all([

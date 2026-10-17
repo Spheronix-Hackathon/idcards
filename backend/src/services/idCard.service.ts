@@ -91,7 +91,16 @@ export class IDCardService {
   ): Promise<IBase64Image> {
     const config = template.configuration;
     const isVertical = config.height > config.width;
-    const { buffer: templateBuffer } = base64ImageToBuffer(template.templateImage);
+    
+    // Use cached buffer if present, otherwise decode and cache
+    let templateBuffer: Buffer;
+    if ((template as any)._precomputedBuffer) {
+      templateBuffer = (template as any)._precomputedBuffer;
+    } else {
+      templateBuffer = base64ImageToBuffer(template.templateImage).buffer;
+      (template as any)._precomputedBuffer = templateBuffer;
+    }
+
     const { buffer: photoBuffer } = base64ImageToBuffer(student.photo);
 
     // 1. Process and circular-mask student photo (210px diameter centered in clean photo area)
@@ -305,7 +314,6 @@ export class IDCardService {
     const photoTop = isVertical ? (config.photo.y ?? 213) : config.photo.y;
 
     const finalCardBuffer = await sharp(templateBuffer)
-      .resize(config.width, config.height)
       .composite([
         {
           input: circularPhotoBuffer,
@@ -318,8 +326,7 @@ export class IDCardService {
           left: 0
         }
       ])
-
-      .png({ compressionLevel: 5, adaptiveFiltering: true })
+      .png({ compressionLevel: 4, effort: 1 })
       .toBuffer();
 
     return bufferToBase64Image(finalCardBuffer, 'image/png');
