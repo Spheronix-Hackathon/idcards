@@ -71,43 +71,25 @@ export class IDCardController {
         return;
       }
 
-      let { buffer, mimeType } = base64ImageToBuffer(card.generatedImage);
+      const etag = `"${card.studentId}-v${card.version}"`;
 
-      // Auto-upgrade: If card is currently in horizontal format OR was generated with older template version
-      try {
-        const activeTemplate = await IDCardTemplate.findOne({ isActive: true });
-        if (activeTemplate) {
-          const meta = await sharp(buffer).metadata();
-          const isHorizontal = !!(meta.width && meta.height && meta.width > meta.height);
-          const isOlderVersion = card.templateVersion !== activeTemplate.version;
-
-          if (isHorizontal || isOlderVersion) {
-            const student = await Student.findOne({ studentId: card.studentId });
-            if (student) {
-              console.log(`[IDCardController] Upgrading ${card.studentId} to latest vertical template (${activeTemplate.version})...`);
-              const updatedImage = await IDCardService.generateStudentIdCard(student, activeTemplate);
-              card.generatedImage = updatedImage;
-              card.template = activeTemplate._id;
-              card.templateVersion = activeTemplate.version;
-              await card.save();
-              const refreshed = base64ImageToBuffer(updatedImage);
-              buffer = refreshed.buffer;
-              mimeType = refreshed.mimeType;
-            }
-          }
-        }
-      } catch (autoErr) {
-        console.warn(`[IDCardController] Auto-upgrade check bypassed:`, autoErr);
+      // Check client ETag cache (instant 304 response)
+      if (req.headers['if-none-match'] === etag) {
+        res.status(304).end();
+        return;
       }
 
+      const { buffer, mimeType } = base64ImageToBuffer(card.generatedImage);
       const filename = `SPHERONIX-ID-${card.studentId}-v${card.version}.png`;
 
       res.setHeader('Content-Type', mimeType || 'image/png');
+      res.setHeader('ETag', etag);
       res.setHeader(
         'Content-Disposition',
         `${download ? 'attachment' : 'inline'}; filename="${filename}"`
       );
-      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      // Cache for 24 hours in browser, revalidate in background
+      res.setHeader('Cache-Control', 'public, max-age=86400, stale-while-revalidate=604800');
       res.send(buffer);
     } catch (error) {
       next(error);

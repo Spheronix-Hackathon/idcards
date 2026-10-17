@@ -188,7 +188,7 @@ export const ImageCropperModal: React.FC<ImageCropperModalProps> = ({
         onClose();
       },
       'image/jpeg',
-      0.95
+      0.85
     );
   };
 
