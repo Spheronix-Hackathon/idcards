@@ -63,11 +63,15 @@ export class StudentController {
         return;
       }
 
-      // 2. Parallel duplicate checks (Email & Mobile)
+      const startTime = Date.now();
+
+      // 2. Parallel duplicate checks, Photo Processing, and Atomic ID Generation in ONE step
       const normalizedEmail = email.toLowerCase().trim();
-      const [existingEmail, existingMobile] = await Promise.all([
+      const [existingEmail, existingMobile, processedPhoto, studentId] = await Promise.all([
         Student.findOne({ email: normalizedEmail }).select('_id'),
-        Student.findOne({ mobile: mobile.trim() }).select('_id')
+        Student.findOne({ mobile: mobile.trim() }).select('_id'),
+        PhotoService.processStudentPhoto(req.file.buffer, req.file.mimetype),
+        generateNextStudentId()
       ]);
 
       if (existingEmail) {
@@ -86,14 +90,7 @@ export class StudentController {
         return;
       }
 
-      // 3. Parallel Photo Processing, ID Generation, and Template Resolution
-      const [processedPhoto, studentId, activeTemplate] = await Promise.all([
-        PhotoService.processStudentPhoto(req.file.buffer, req.file.mimetype),
-        generateNextStudentId(),
-        StudentController.getActiveTemplate()
-      ]);
-
-      // 4. Pre-allocate Student document with unique ObjectId
+      // 3. Pre-allocate Student document with unique ObjectId
       const studentIdObject = new mongoose.Types.ObjectId();
       const student = new Student({
         _id: studentIdObject,
@@ -110,12 +107,17 @@ export class StudentController {
         status: StudentStatus.PENDING
       });
 
-      // 5. Persist Student record immediately (sub-second database write)
+      // 4. Persist Student record immediately (sub-second database write)
       await student.save();
 
-      // 6. Asynchronous non-blocking ID card generation in background
+      const elapsedMs = Date.now() - startTime;
+      res.setHeader('Server-Timing', `reg;dur=${elapsedMs}`);
+      res.setHeader('X-Registration-Time-Ms', elapsedMs.toString());
+
+      // 5. Asynchronous non-blocking ID card generation & template resolution in background
       (async () => {
         try {
+          const activeTemplate = await StudentController.getActiveTemplate();
           const generatedCardImage = await IDCardService.generateStudentIdCard(
             student,
             activeTemplate
@@ -144,7 +146,7 @@ export class StudentController {
         }
       })();
 
-      // 7. Non-blocking audit log for student registration
+      // 6. Non-blocking audit log for student registration
       AuditService.log({
         action: AuditAction.STUDENT_CREATED,
         description: `Student ${student.fullName} registered with ID ${student.studentId}`,

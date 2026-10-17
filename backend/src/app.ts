@@ -62,6 +62,7 @@ export const createApp = (): Express => {
     res.status(200).json({
       status: 'UP',
       service: 'Spheronix ID Card Generator API',
+      version: '2.2.0-async',
       timestamp: new Date().toISOString()
     });
   });
