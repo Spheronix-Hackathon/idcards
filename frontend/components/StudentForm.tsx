@@ -42,15 +42,11 @@ export const StudentForm: React.FC = () => {
     }
 
     setIsSubmitting(true);
-    setSubmitStage('Generating your temporary ID card...');
+    setSubmitStage('Generating student ID card...');
 
     const stageTimer1 = setTimeout(() => {
-      setSubmitStage('Framing photo & rendering official card layout...');
-    }, 3000);
-
-    const stageTimer2 = setTimeout(() => {
-      setSubmitStage('Connecting to database & saving records...');
-    }, 6500);
+      setSubmitStage('Finalizing records & preparing card preview...');
+    }, 2500);
 
     try {
       const formData = new FormData();
@@ -79,7 +75,6 @@ export const StudentForm: React.FC = () => {
       setIsSubmitting(false);
     } finally {
       clearTimeout(stageTimer1);
-      clearTimeout(stageTimer2);
     }
   };
 

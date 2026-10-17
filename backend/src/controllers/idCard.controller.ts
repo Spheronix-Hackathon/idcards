@@ -8,6 +8,7 @@ import { PdfService } from '../services/pdf.service';
 import { AuditService } from '../services/audit.service';
 import { AuditAction, AuthenticatedRequest } from '../types';
 import { base64ImageToBuffer } from '../utils/base64';
+import { StudentController } from './student.controller';
 
 export class IDCardController {
   /**
@@ -20,15 +21,32 @@ export class IDCardController {
   ): Promise<void> {
     try {
       const { studentId } = req.params;
-      const card = await IDCard.findOne({ studentId: studentId.trim().toUpperCase() })
+      let card = await IDCard.findOne({ studentId: studentId.trim().toUpperCase() })
         .sort({ version: -1 })
         .populate('template', 'name version')
         .select('-generatedImage.data -pdfData.data');
 
       if (!card) {
-        res.status(404).json({
-          success: false,
-          message: 'ID card record not found.'
+        const student = await Student.findOne({ studentId: studentId.trim().toUpperCase() });
+        if (!student) {
+          res.status(404).json({
+            success: false,
+            message: 'ID card record not found.'
+          });
+          return;
+        }
+
+        res.status(200).json({
+          success: true,
+          data: {
+            student: student._id,
+            studentId: student.studentId,
+            templateVersion: '1.0',
+            status: student.status,
+            version: 1,
+            imageUrl: `/api/students/${studentId}/id-card/image`,
+            pdfUrl: `/api/students/${studentId}/id-card/pdf`
+          }
         });
         return;
       }
@@ -49,7 +67,7 @@ export class IDCardController {
   /**
    * Direct image streaming endpoint for generated ID card PNG.
    * Features self-healing: automatically upgrades any legacy horizontal cards to the
-   * official vertical template without user intervention.
+   * official vertical template without user intervention, and on-demand generation fallback.
    */
   public static async streamCardImage(
     req: Request,
@@ -60,15 +78,38 @@ export class IDCardController {
       const { studentId } = req.params;
       const download = req.query.download === 'true';
 
-      const card = await IDCard.findOne({ studentId: studentId.trim().toUpperCase() })
+      let card = await IDCard.findOne({ studentId: studentId.trim().toUpperCase() })
         .sort({ version: -1 });
 
       if (!card || !card.generatedImage || !card.generatedImage.data) {
-        res.status(404).json({
-          success: false,
-          message: 'Generated ID card image not found.'
+        // Fallback: If background card generation is still persisting, generate on-the-fly
+        const student = await Student.findOne({ studentId: studentId.trim().toUpperCase() });
+        if (!student) {
+          res.status(404).json({
+            success: false,
+            message: 'Generated ID card image not found.'
+          });
+          return;
+        }
+
+        const activeTemplate = await StudentController.getActiveTemplate();
+        const generatedCardImage = await IDCardService.generateStudentIdCard(
+          student,
+          activeTemplate
+        );
+
+        card = new IDCard({
+          student: student._id,
+          studentId: student.studentId,
+          template: activeTemplate._id,
+          templateVersion: activeTemplate.version,
+          generatedImage: generatedCardImage,
+          status: student.status,
+          version: 1
         });
-        return;
+
+        // Persist in background so subsequent requests hit MongoDB cache
+        card.save().catch((err: any) => console.error('[IDCard] Auto-save error:', err));
       }
 
       const etag = `"${card.studentId}-v${card.version}"`;
@@ -108,15 +149,36 @@ export class IDCardController {
     try {
       const { studentId } = req.params;
 
-      const card = await IDCard.findOne({ studentId: studentId.trim().toUpperCase() })
+      let card = await IDCard.findOne({ studentId: studentId.trim().toUpperCase() })
         .sort({ version: -1 });
 
       if (!card || !card.generatedImage || !card.generatedImage.data) {
-        res.status(404).json({
-          success: false,
-          message: 'ID card data not found for PDF export.'
+        const student = await Student.findOne({ studentId: studentId.trim().toUpperCase() });
+        if (!student) {
+          res.status(404).json({
+            success: false,
+            message: 'ID card data not found for PDF export.'
+          });
+          return;
+        }
+
+        const activeTemplate = await StudentController.getActiveTemplate();
+        const generatedCardImage = await IDCardService.generateStudentIdCard(
+          student,
+          activeTemplate
+        );
+
+        card = new IDCard({
+          student: student._id,
+          studentId: student.studentId,
+          template: activeTemplate._id,
+          templateVersion: activeTemplate.version,
+          generatedImage: generatedCardImage,
+          status: student.status,
+          version: 1
         });
-        return;
+
+        card.save().catch((err: any) => console.error('[IDCard] Auto-save error:', err));
       }
 
       let cardImage = card.generatedImage;

@@ -110,45 +110,49 @@ export class StudentController {
         status: StudentStatus.PENDING
       });
 
-      // 5. Generate ID Card image (strictly NO QR CODE)
-      const generatedCardImage = await IDCardService.generateStudentIdCard(
-        student,
-        activeTemplate
-      );
+      // 5. Persist Student record immediately (sub-second database write)
+      await student.save();
 
-      // 6. Concurrently persist Student and IDCard to MongoDB Atlas
-      const idCard = new IDCard({
-        student: student._id,
-        studentId: student.studentId,
-        template: activeTemplate._id,
-        templateVersion: activeTemplate.version,
-        generatedImage: generatedCardImage,
-        status: StudentStatus.PENDING,
-        version: 1
-      });
+      // 6. Asynchronous non-blocking ID card generation in background
+      (async () => {
+        try {
+          const generatedCardImage = await IDCardService.generateStudentIdCard(
+            student,
+            activeTemplate
+          );
 
-      await Promise.all([
-        student.save(),
-        idCard.save()
-      ]);
+          const idCard = new IDCard({
+            student: student._id,
+            studentId: student.studentId,
+            template: activeTemplate._id,
+            templateVersion: activeTemplate.version,
+            generatedImage: generatedCardImage,
+            status: StudentStatus.PENDING,
+            version: 1
+          });
 
-      // 7. Non-blocking audit logs in background
-      Promise.all([
-        AuditService.log({
-          action: AuditAction.STUDENT_CREATED,
-          description: `Student ${student.fullName} registered with ID ${student.studentId}`,
-          studentId: student._id,
-          metadata: { studentId: student.studentId, email: student.email }
-        }),
-        AuditService.log({
-          action: AuditAction.CARD_GENERATED,
-          description: `Temporary ID card version 1 generated for student ${student.studentId}`,
-          studentId: student._id,
-          metadata: { templateVersion: activeTemplate.version }
-        })
-      ]).catch((err) => console.error('[Audit] Background log error:', err));
+          await idCard.save();
 
-      // Return clean response without huge Base64 payload
+          await AuditService.log({
+            action: AuditAction.CARD_GENERATED,
+            description: `Temporary ID card version 1 generated for student ${student.studentId}`,
+            studentId: student._id,
+            metadata: { templateVersion: activeTemplate.version }
+          });
+        } catch (cardErr) {
+          console.error('[AsyncCardGen] Background ID card generation error:', cardErr);
+        }
+      })();
+
+      // 7. Non-blocking audit log for student registration
+      AuditService.log({
+        action: AuditAction.STUDENT_CREATED,
+        description: `Student ${student.fullName} registered with ID ${student.studentId}`,
+        studentId: student._id,
+        metadata: { studentId: student.studentId, email: student.email }
+      }).catch((err) => console.error('[Audit] Background log error:', err));
+
+      // Return clean response immediately in < 1 second!
       res.status(201).json({
         success: true,
         data: {
@@ -158,7 +162,7 @@ export class StudentController {
           collegeName: student.collegeName,
           branch: student.branch,
           status: student.status,
-          cardVersion: idCard.version,
+          cardVersion: 1,
           cardImageUrl: `/api/students/${student.studentId}/id-card/image`,
           cardPdfUrl: `/api/students/${student.studentId}/id-card/pdf`
         }
