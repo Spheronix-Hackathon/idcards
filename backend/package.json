@@ -9,7 +9,10 @@
     "dev": "tsx watch src/server.ts",
     "seed": "tsx src/utils/seed.ts",
     "test": "tsx src/tests/systemTest.ts",
-    "test:load": "tsx src/tests/loadTest100.ts"
+    "test:load": "tsx src/tests/loadTest100.ts",
+    "test:stress": "tsx src/tests/concurrentStressTest.ts",
+    "test:stress:login": "tsx src/tests/concurrentStressTest.ts --mode=login",
+    "test:stress:register": "tsx src/tests/concurrentStressTest.ts --mode=register"
   },
   "keywords": [
     "spheronix",

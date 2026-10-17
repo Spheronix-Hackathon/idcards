@@ -1,0 +1,49 @@
+services:
+  # ============================================================================
+  # Spheronix Student ID Generator - Backend API Service
+  # ============================================================================
+  - type: web
+    name: spheronix-id-backend
+    runtime: node
+    plan: starter
+    region: oregon
+    buildCommand: cd backend && npm install && npm run build
+    startCommand: cd backend && npm run start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 5000
+      - key: MONGODB_URI
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_EXPIRES_IN
+        value: 24h
+      - key: FRONTEND_URL
+        sync: false
+      - key: MAX_CONCURRENT_STUDENTS
+        value: 10
+      - key: RATE_LIMIT_REGISTRATION_MAX
+        value: 500
+      - key: RATE_LIMIT_RETRIEVAL_MAX
+        value: 1000
+      - key: RATE_LIMIT_LOGIN_MAX
+        value: 50
+
+  # ============================================================================
+  # Spheronix Student ID Generator - Frontend Next.js Portal
+  # ============================================================================
+  - type: web
+    name: spheronix-id-frontend
+    runtime: node
+    plan: starter
+    region: oregon
+    buildCommand: cd frontend && npm install && npm run build
+    startCommand: cd frontend && npm run start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NEXT_PUBLIC_API_URL
+        sync: false
