@@ -68,7 +68,7 @@ export const ImageCropperModal: React.FC<ImageCropperModalProps> = ({
 
   // Handle Drag / Pan with Mouse
   const handleMouseDown = (e: React.MouseEvent) => {
-    e.preventDefault();
+    if (e.cancelable) e.preventDefault();
     setIsDragging(true);
     setDragStart({ x: e.clientX - pan.x, y: e.clientY - pan.y });
   };
@@ -108,12 +108,22 @@ export const ImageCropperModal: React.FC<ImageCropperModalProps> = ({
     setIsDragging(false);
   };
 
-  // Handle Mouse Wheel Zoom
-  const handleWheel = (e: React.WheelEvent) => {
-    e.preventDefault();
-    const delta = e.deltaY * -0.0015;
-    setZoom((prev) => Math.min(Math.max(1, prev + delta), 3.5));
-  };
+  // Non-passive Mouse Wheel Zoom listener to safely preventDefault without console errors
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container || !isOpen) return;
+
+    const onWheelNative = (e: WheelEvent) => {
+      e.preventDefault();
+      const delta = e.deltaY * -0.0015;
+      setZoom((prev) => Math.min(Math.max(1, prev + delta), 3.5));
+    };
+
+    container.addEventListener('wheel', onWheelNative, { passive: false });
+    return () => {
+      container.removeEventListener('wheel', onWheelNative);
+    };
+  }, [isOpen]);
 
   const handleReset = () => {
     setZoom(1);
@@ -222,9 +232,7 @@ export const ImageCropperModal: React.FC<ImageCropperModalProps> = ({
             onMouseLeave={handleMouseUp}
             onTouchStart={handleTouchStart}
             onTouchMove={handleTouchMove}
-            onTouchEnd={handleTouchEnd}
-            onWheel={handleWheel}
-            style={{ width: VIEW_SIZE, height: VIEW_SIZE }}
+            style={{ width: VIEW_SIZE, height: VIEW_SIZE, touchAction: 'none' }}
             className={`relative overflow-hidden rounded-2xl bg-slate-950 shadow-inner cursor-${
               isDragging ? 'grabbing' : 'grab'
             } flex items-center justify-center`}
