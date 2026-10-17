@@ -21,10 +21,14 @@ export const IDCardPreview: React.FC<IDCardPreviewProps> = ({
   const [hasError, setHasError] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isVertical, setIsVertical] = useState(true);
-  const [mountTime] = useState(() => Date.now());
+  const [imageUrl, setImageUrl] = useState<string>(
+    () => `${api.getStudentCardImageUrl(studentId)}?v=${version}`
+  );
 
-  // Cache-busting query parameter on version and mount change
-  const imageUrl = `${api.getStudentCardImageUrl(studentId)}?v=${version}&t=${mountTime}`;
+  // Set fresh cache-buster timestamp ONLY after client hydration to prevent SSR mismatch
+  React.useEffect(() => {
+    setImageUrl(`${api.getStudentCardImageUrl(studentId)}?v=${version}&t=${Date.now()}`);
+  }, [studentId, version]);
 
   return (
     <div className={`flex flex-col items-center ${className}`}>
@@ -48,6 +52,7 @@ export const IDCardPreview: React.FC<IDCardPreviewProps> = ({
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={imageUrl}
+          suppressHydrationWarning
           alt={`Student ID Card - ${fullName || studentId}`}
           className={`w-full h-auto object-contain transition-opacity duration-300 ${
             isLoading ? 'opacity-0' : 'opacity-100'
@@ -132,6 +137,7 @@ export const IDCardPreview: React.FC<IDCardPreviewProps> = ({
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={imageUrl}
+              suppressHydrationWarning
               alt={`Full size preview of ${studentId}`}
               className="w-full h-auto rounded-xl shadow-inner max-h-[75vh] object-contain border border-slate-200"
             />
