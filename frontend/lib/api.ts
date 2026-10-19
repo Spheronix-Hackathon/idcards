@@ -1,6 +1,16 @@
-const API_BASE =
-  process.env.NEXT_PUBLIC_API_URL ||
-  (typeof window !== 'undefined' ? '/api' : 'http://localhost:5000/api');
+const getApiBase = (): string => {
+  let url = process.env.NEXT_PUBLIC_API_URL?.trim();
+  if (!url) {
+    return typeof window !== 'undefined' ? '/api' : 'http://localhost:5000/api';
+  }
+  url = url.replace(/\/+$/, '');
+  if (!url.endsWith('/api')) {
+    url = `${url}/api`;
+  }
+  return url;
+};
+
+const API_BASE = getApiBase();
 
 const getAuthHeaders = (): Record<string, string> => {
   if (typeof window === 'undefined') return {};
