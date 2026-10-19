@@ -39,9 +39,11 @@ export const createApp = (): Express => {
           return callback(null, true);
         }
 
-        // Allow all localhost / 127.0.0.1 ports in development or if specified
+        // Allow all localhost / 127.0.0.1 ports, any Render subdomains, and spheronix domain
         const isLocalhost = /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin);
-        if (isLocalhost || allowedOrigins.includes(origin) || process.env.NODE_ENV !== 'production') {
+        const isRender = /^https:\/\/[a-zA-Z0-9-]+\.onrender\.com$/.test(origin);
+        const isSpheronixDomain = /^https?:\/\/(.+\.)?spheronixtechnology\.in$/.test(origin);
+        if (isLocalhost || isRender || isSpheronixDomain || allowedOrigins.includes(origin) || process.env.NODE_ENV !== 'production') {
           return callback(null, true);
         }
 
